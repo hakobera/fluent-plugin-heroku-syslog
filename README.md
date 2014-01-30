@@ -1,5 +1,9 @@
 # fluent-plugin-in-heroku-syslog
 
+fluent plugin to drain heroku syslog.
+
+[![Build Status](https://travis-ci.org/hakobera/fluent-plugin-heroku-syslog.png?branch=master)](https://travis-ci.org/hakobera/fluent-plugin-heroku-syslog)
+
 ## Component
 
 ### HerokuSyslogInput

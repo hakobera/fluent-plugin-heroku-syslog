@@ -1,4 +1,4 @@
-# fluent-plugin-in-heroku-syslog
+# fluent-plugin-heroku-syslog
 
 fluent plugin to drain heroku syslog.
 

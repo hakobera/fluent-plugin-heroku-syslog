@@ -19,6 +19,10 @@ Plugin to accept syslog input from [heroku syslog drains](https://devcenter.hero
 </source>
 ```
 
+## TODO
+
+- Implement authentication logic or filter like HTTP basic auth.
+
 ## Copyright
 
 - Copyright

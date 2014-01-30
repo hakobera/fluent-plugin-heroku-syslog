@@ -15,7 +15,9 @@ Plugin to accept syslog input from [heroku syslog drains](https://devcenter.hero
 ```
 <source>
   type heroku_syslog
+  port 5140
   bind 0.0.0.0
+  tag  heroku
 </source>
 ```
 

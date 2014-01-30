@@ -10,6 +10,18 @@ fluent plugin to drain heroku syslog.
 
 Plugin to accept syslog input from [heroku syslog drains](https://devcenter.heroku.com/articles/logging#syslog-drains).
 
+## Installation
+
+Install with gem or fluent-gem command as:
+
+```
+# for fluentd
+$ gem install fluent-plugin-heroku-syslog
+
+# for td-agent
+$ sudo /usr/lib64/fluent/ruby/bin/fluent-gem install fluent-plugin-heroku-syslog
+```
+
 ## Configuration
 
 ```

@@ -4,7 +4,7 @@ module Fluent
 
     OCTET_COUNTING_REGEXP = /^([0-9]+)\s+(.*)/
     SYSLOG_REGEXP = /^\<([0-9]+)\>[0-9]*(.*)/
-    SYSLOG_ALL_REGEXP = /^\<(?<pri>[0-9]+)\>[0-9]* (?<time>[^ ]*) (?<host>[^ ]*) (?<ident>[a-zA-Z0-9_\/\.\-]*) (?<pid>[a-zA-Z0-9\.]+)? *(?<message>.*)$/
+    SYSLOG_ALL_REGEXP = /^\<(?<pri>[0-9]+)\>[0-9]* (?<time>[^ ]*) (?<drain_id>[^ ]*) (?<ident>[a-zA-Z0-9_\/\.\-]*) (?<pid>[a-zA-Z0-9\.]+)? *(?<message>.*)$/
     TIME_FORMAT = "%Y-%m-%dT%H:%M:%S%z"
 
     FACILITY_MAP = {
@@ -190,19 +190,21 @@ module Fluent
         # syslog family add "\n" to each message and this seems only way to split messages in tcp stream
         while i = @buffer.index("\n", pos)
           msg = @buffer[pos..i]
+
           # Support Octet Counting 
           # https://tools.ietf.org/html/rfc6587#section-3.4.1
           m = OCTET_COUNTING_REGEXP.match(msg)
+          valid = true
           if m
-            msg_len = m[1].to_i
+            msg_len = m[1].to_i - 1
             msg = m[2]
 
             if msg_len != msg.length
-              $log.debug "invalid syslog message length", :data => msg
-              next
+              $log.debug "invalid syslog message length", :expected => msg_len, :actual => msg.length, :data => msg
+              valid = false
             end
           end
-          @on_message.call(msg)
+          @on_message.call(msg) if valid
           pos = i + 1
         end
         @buffer.slice!(0, pos) if pos > 0

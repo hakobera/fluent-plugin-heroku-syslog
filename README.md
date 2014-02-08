@@ -1,6 +1,6 @@
-# fluent-plugin-heroku-syslog, a plugin for [Fluentd](http://fluentd.org)
+# fluent-plugin-heroku-syslog
 
-fluent plugin to drain heroku syslog.
+[fluent](http://fluentd.org) plugin to drain heroku syslog.
 
 [![Build Status](https://travis-ci.org/hakobera/fluent-plugin-heroku-syslog.png?branch=master)](https://travis-ci.org/hakobera/fluent-plugin-heroku-syslog)
 

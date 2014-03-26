@@ -42,6 +42,7 @@ def ipv6_enabled?
 end
 
 require 'fluent/plugin/in_heroku_syslog'
+require 'fluent/plugin/in_heroku_syslog_http'
 
 class Test::Unit::TestCase
 end

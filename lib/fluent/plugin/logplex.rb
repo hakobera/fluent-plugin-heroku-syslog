@@ -124,12 +124,13 @@ module Fluent
       m = OCTET_COUNTING_REGEXP.match(msg)
       valid = true
       syslog = nil
+      offset = msg.end_with?("\n") ? 1 : 0
       if m
-        msg_len = m[1].to_i - 1
+        msg_len = m[1].to_i
         syslog = m[2]
 
-        if msg_len != syslog.length
-          $log.debug "invalid syslog message length", :expected => msg_len, :actual => msg.length, :data => msg
+        if msg_len != (syslog.length + offset)
+          $log.debug "invalid syslog message length", :expected => msg_len, :actual => syslog.length + offset, :data => msg
           valid = false
         end
       end

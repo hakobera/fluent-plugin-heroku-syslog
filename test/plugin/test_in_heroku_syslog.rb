@@ -43,11 +43,13 @@ class HerokuSyslogInputTest < Test::Unit::TestCase
       tests = [
         {
             'msg' => "92 <13>1 2014-01-29T06:25:52.589365+00:00 d.916a3e50-efa1-4754-aded-ffffffffffff app web.1 foo\n",
-            'expected' => Time.strptime('2014-01-29T06:25:52+00:00', '%Y-%m-%dT%H:%M:%S%z').to_i
+            'expected' => 'foo',
+            'expected_time' => Time.strptime('2014-01-29T06:25:52+00:00', '%Y-%m-%dT%H:%M:%S%z').to_i
         },
         {
             'msg' => "92 <13>1 2014-01-30T07:35:00.123456+09:00 d.916a3e50-efa1-4754-aded-ffffffffffff app web.1 bar\n",
-            'expected' => Time.strptime('2014-01-30T07:35:00+09:00', '%Y-%m-%dT%H:%M:%S%z').to_i
+            'expected' => 'bar',
+            'expected_time' => Time.strptime('2014-01-30T07:35:00+09:00', '%Y-%m-%dT%H:%M:%S%z').to_i
         }
       ]
 
@@ -60,12 +62,7 @@ class HerokuSyslogInputTest < Test::Unit::TestCase
         sleep 1
       end
 
-      emits = d.emits
-      $log.debug emits
-      emits.each_index {|i|
-        $log.debug emits[i][1]
-        assert_equal(tests[i]['expected'], emits[i][1])
-      }
+      compare_test_result(d.emits, tests)
     }
   end
 
@@ -116,8 +113,10 @@ class HerokuSyslogInputTest < Test::Unit::TestCase
   end
 
   def compare_test_result(emits, tests)
+    assert_equal(tests.length, emits.length)
     emits.each_index {|i|
-      assert_equal(tests[i]['expected'], emits[i][2]['message'])
+      assert_equal(tests[i]['expected_time'], emits[i][1]) if tests[i]['expected_time']
+      assert_equal(tests[i]['expected'], emits[i][2]['message']) if tests[i]['expected']
       assert_equal('d.916a3e50-efa1-4754-aded-ffffffffffff', emits[i][2]['drain_id'])
       assert_equal('app', emits[i][2]['ident'])
       assert_equal('web.1', emits[i][2]['pid'])

@@ -1,8 +1,6 @@
 module Fluent
   module Logplex
-    OCTET_COUNTING_REGEXP = /^([0-9]+)\s+(.*)/
-    SYSLOG_REGEXP = /^\<([0-9]+)\>[0-9]*(.*)/
-    SYSLOG_ALL_REGEXP = /^\<(?<pri>[0-9]+)\>[0-9]* (?<time>[^ ]*) (?<drain_id>[^ ]*) (?<ident>[a-zA-Z0-9_\/\.\-]*) (?<pid>[a-zA-Z0-9\.]+)? *(?<message>.*)$/
+    SYSLOG_REGEXP = '/^(?<msg_count>[0-9]+)\\s+\\<(?<pri>[0-9]+)\\>[0-9]* (?<time>[^ ]*) (?<drain_id>[^ ]*) (?<ident>[a-zA-Z0-9_\\/\\.\\-]*) (?<pid>[a-zA-Z0-9\\.]+)? *(?<message>.*)$/'
     TIME_FORMAT = "%Y-%m-%dT%H:%M:%S%z"
 
     FACILITY_MAP = {
@@ -44,40 +42,13 @@ module Fluent
     }
 
     def configure_parser(conf)
-      parser = TextParser.new
-      if parser.configure(conf, false)
-        @parser = parser
-      else
-        @parser = nil
-        @time_parser = TextParser::TimeParser.new(TIME_FORMAT)
-      end
-    end
-
-    def receive_data_parser(data)
-      m = SYSLOG_REGEXP.match(data)
-      unless m
-        $log.debug "invalid syslog message: #{data.dump}"
-        return
-      end
-      pri = m[1].to_i
-      text = m[2]
-
-      time, record = @parser.parse(text)
-      unless time && record
-        return
-      end
-
-      emit(pri, time, record)
-
-    rescue
-      $log.warn data.dump, :error=>$!.to_s
-      $log.debug_backtrace
+      @time_parser = TextParser::TimeParser.new(TIME_FORMAT)
     end
 
     def receive_data(data)
-      m = SYSLOG_ALL_REGEXP.match(data)
+      m = SYSLOG_REGEXP.match(data)
       unless m
-        $log.debug "invalid syslog message", :data=>data
+        @log.debug "invalid syslog message", :data => data
         return
       end
 
@@ -103,8 +74,8 @@ module Fluent
       emit(pri, time, record)
 
     rescue
-      $log.warn data.dump, :error=>$!.to_s
-      $log.debug_backtrace
+      @log.warn data.dump, :error=>$!.to_s
+      @log.debug_backtrace
     end
 
     def emit(pri, time, record)
@@ -115,7 +86,7 @@ module Fluent
 
       Engine.emit(tag, time, record)
     rescue => e
-      $log.error "syslog failed to emit", :error => e.to_s, :error_class => e.class.to_s, :tag => tag, :record => Yajl.dump(record)
+      @log.error "syslog failed to emit", :error => e.to_s, :error_class => e.class.to_s, :tag => tag, :record => Yajl.dump(record)
     end
 
     def self.parse_message(msg)
@@ -130,7 +101,7 @@ module Fluent
         syslog = m[2]
 
         if msg_len != (syslog.length + offset)
-          $log.debug "invalid syslog message length", :expected => msg_len, :actual => syslog.length + offset, :data => msg
+          @log.debug "invalid syslog message length", :expected => msg_len, :actual => syslog.length + offset, :data => msg
           valid = false
         end
       end

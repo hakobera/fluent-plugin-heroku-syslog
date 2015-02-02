@@ -12,7 +12,6 @@ class HerokuSyslogHttpInputTest < Test::Unit::TestCase
     bind 127.0.0.1
     body_size_limit 10m
     keepalive_timeout 5
-    tag heroku
   ]
 
   def create_driver(conf=CONFIG)
@@ -25,7 +24,6 @@ class HerokuSyslogHttpInputTest < Test::Unit::TestCase
     assert_equal '127.0.0.1', d.instance.bind
     assert_equal 10*1024*1024, d.instance.body_size_limit
     assert_equal 5, d.instance.keepalive_timeout
-    assert_equal 'heroku', d.instance.tag
   end
 
   def test_time_format
@@ -48,18 +46,22 @@ class HerokuSyslogHttpInputTest < Test::Unit::TestCase
       msg['msg'] = "#{msg['msg'].length} #{msg['msg']}"
     end
 
-    d.expect_emit 'heroku.user.notice', tests[0]['expected_time'], {
+    d.expect_emit 'heroku', tests[0]['expected_time'], {
       "drain_id" => "d.916a3e50-efa1-4754-aded-ffffffffffff",
       "ident"=>"app",
+      "msg_count" => "91",
       "pid"=>"web.1",
-      "message"=> "foo"
+      "message"=> "foo",
+      "pri" => "13"
     }
 
-    d.expect_emit 'heroku.user.notice', tests[1]['expected_time'], {
+    d.expect_emit 'heroku', tests[1]['expected_time'], {
       "drain_id" => "d.916a3e50-efa1-4754-aded-ffffffffffff",
       "ident"=>"app",
+      "msg_count" => "91",
       "pid"=>"web.1",
-      "message"=> "bar"
+      "message"=> "bar",
+      "pri" => "13"
     }
 
     d.run do
@@ -72,17 +74,21 @@ class HerokuSyslogHttpInputTest < Test::Unit::TestCase
     d = create_driver
     tests = create_test_case
 
-    d.expect_emit 'heroku.user.notice', tests[0]['expected_time'], {
+    d.expect_emit 'heroku', tests[0]['expected_time'], {
       "drain_id" => "d.916a3e50-efa1-4754-aded-ffffffffffff",
       "ident" => "app",
+      "msg_count" => "188",
       "pid" => "web.1",
-      "message" => "x" * 100
+      "message" => "x" * 100,
+      "pri" => "13"
     }
-    d.expect_emit 'heroku.user.notice', tests[1]['expected_time'], {
+    d.expect_emit 'heroku', tests[1]['expected_time'], {
       "drain_id" => "d.916a3e50-efa1-4754-aded-ffffffffffff",
       "ident" => "app",
+      "msg_count" => "1112",
       "pid" => "web.1",
-      "message" => "x" * 1024
+      "message" => "x" * 1024,
+      "pri" => "13"
     }
 
     d.run do
@@ -116,14 +122,14 @@ class HerokuSyslogHttpInputTest < Test::Unit::TestCase
   def post(messages)
     # https://github.com/heroku/logplex/blob/master/doc/README.http_drains.md
     http = Net::HTTP.new("127.0.0.1", PORT)
-    req = Net::HTTP::Post.new('/', {
+    req = Net::HTTP::Post.new('/heroku', {
       "Content-Type" => "application/logplex-1",
       "Logplex-Msg-Count" => messages.length.to_s,
       "Logplex-Frame-Id" => "09C557EAFCFB6CF2740EE62F62971098",
       "Logplex-Drain-Token" => "d.fc6b856b-3332-4546-93de-7d0ee272c3bd",
       "User-Agent" => "Logplex/v49"
     })
-    req.body = messages.map {|msg| msg['msg']}.join('\r\n')
+    req.body = messages.map {|msg| msg['msg']}.join("\n")
     http.request(req)
   end
 

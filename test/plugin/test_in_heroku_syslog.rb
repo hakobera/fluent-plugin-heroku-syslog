@@ -15,7 +15,7 @@ class HerokuSyslogInputTest < Test::Unit::TestCase
   IPv6_CONFIG = %[
     port #{PORT}
     bind ::1
-    tag syslog
+    tag heroku.syslog
   ]
 
   def create_driver(conf=CONFIG)
@@ -98,6 +98,54 @@ class HerokuSyslogInputTest < Test::Unit::TestCase
     compare_test_result(d.emits, tests)
   end
 
+  def test_accept_matched_drain_id
+    d = create_driver(CONFIG + "\ndrain_ids [\"d.916a3e50-efa1-4754-aded-ffffffffffff\"]")
+    tests = create_test_case
+
+    d.run do
+      TCPSocket.open('127.0.0.1', PORT) do |s|
+        tests.each {|test|
+          s.send(test['msg'], 0)
+        }
+      end
+      sleep 1
+    end
+
+    compare_test_result(d.emits, tests)
+  end
+
+  def test_accept_matched_drain_id_multiple
+    d = create_driver(CONFIG + "\ndrain_ids [\"abc\",\"d.916a3e50-efa1-4754-aded-ffffffffffff\"]")
+    tests = create_test_case
+
+    d.run do
+      TCPSocket.open('127.0.0.1', PORT) do |s|
+        tests.each {|test|
+          s.send(test['msg'], 0)
+        }
+      end
+      sleep 1
+    end
+
+    compare_test_result(d.emits, tests)
+  end
+
+  def test_ignore_unmatched_drain_id
+    d = create_driver(CONFIG + "\ndrain_ids [\"abc\"]")
+    tests = create_test_case
+
+    d.run do
+      TCPSocket.open('127.0.0.1', PORT) do |s|
+        tests.each {|test|
+          s.send(test['msg'], 0)
+        }
+      end
+      sleep 1
+    end
+
+    assert_equal(0, d.emits.length)
+  end
+
   def create_test_case
     # actual syslog message has "\n"
     msgs = [
@@ -115,11 +163,14 @@ class HerokuSyslogInputTest < Test::Unit::TestCase
   def compare_test_result(emits, tests)
     assert_equal(tests.length, emits.length)
     emits.each_index {|i|
+      assert_equal('heroku.syslog', emits[i][0])
       assert_equal(tests[i]['expected_time'], emits[i][1]) if tests[i]['expected_time']
       assert_equal(tests[i]['expected'], emits[i][2]['message']) if tests[i]['expected']
       assert_equal('d.916a3e50-efa1-4754-aded-ffffffffffff', emits[i][2]['drain_id'])
       assert_equal('app', emits[i][2]['ident'])
       assert_equal('web.1', emits[i][2]['pid'])
+      assert_equal('user', emits[i][2]['facility'])
+      assert_equal('notice', emits[i][2]['priority'])
     }
   end
 

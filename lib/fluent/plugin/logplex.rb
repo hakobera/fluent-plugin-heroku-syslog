@@ -1,7 +1,6 @@
 module Fluent
   module Logplex
-    SYSLOG_REGEXP = '/^(?<msg_count>[0-9]+)\\s+\\<(?<pri>[0-9]+)\\>[0-9]* (?<time>[^ ]*) (?<drain_id>[^ ]*) (?<ident>[a-zA-Z0-9_\\/\\.\\-]*) (?<pid>[a-zA-Z0-9\\.]+)? *(?<message>.*)$/'
-    TIME_FORMAT = "%Y-%m-%dT%H:%M:%S%z"
+    SYSLOG_REGEXP = '/^([0-9]+)\\s+\\<(?<pri>[0-9]+)\\>[0-9]* (?<time>[^ ]*) (?<drain_id>[^ ]*) (?<ident>[a-zA-Z0-9_\\/\\.\\-]*) (?<pid>[a-zA-Z0-9\\.]+)? *(?<message>.*)$/'
 
     FACILITY_MAP = {
       0   => 'kern',
@@ -41,71 +40,16 @@ module Fluent
       7  => 'debug'
     }
 
-    def configure_parser(conf)
-      @time_parser = TextParser::TimeParser.new(TIME_FORMAT)
-    end
+    def parse_logplex(record, params=nil)
+      pri = record['pri'].to_i
+      record['facility'] = FACILITY_MAP[pri >> 3]
+      record['priority'] = PRIORITY_MAP[pri & 0b111]
 
-    def receive_data(data)
-      m = SYSLOG_REGEXP.match(data)
-      unless m
-        @log.debug "invalid syslog message", :data => data
-        return
+      if params
+        record['drain_id'] = params['HTTP_LOGPLEX_DRAIN_TOKEN']
       end
 
-      pri = nil
-      time = nil
-      record = {}
-
-      m.names.each {|name|
-        if value = m[name]
-          case name
-          when "pri"
-            pri = value.to_i
-          when "time"
-            time = @time_parser.parse(value.gsub(/ +/, ' ').gsub(/\.[0-9]+/, ''))
-          else
-            record[name] = value
-          end
-        end
-      }
-
-      time ||= Engine.now
-
-      emit(pri, time, record)
-
-    rescue
-      @log.warn data.dump, :error=>$!.to_s
-      @log.debug_backtrace
-    end
-
-    def emit(pri, time, record)
-      facility = FACILITY_MAP[pri >> 3]
-      priority = PRIORITY_MAP[pri & 0b111]
-
-      tag = "#{@tag}.#{facility}.#{priority}"
-
-      Engine.emit(tag, time, record)
-    rescue => e
-      @log.error "syslog failed to emit", :error => e.to_s, :error_class => e.class.to_s, :tag => tag, :record => Yajl.dump(record)
-    end
-
-    def self.parse_message(msg)
-      # Support Octet Counting 
-      # https://tools.ietf.org/html/rfc6587#section-3.4.1
-      m = OCTET_COUNTING_REGEXP.match(msg)
-      valid = true
-      syslog = nil
-      offset = msg.end_with?("\n") ? 1 : 0
-      if m
-        msg_len = m[1].to_i
-        syslog = m[2]
-
-        if msg_len != (syslog.length + offset)
-          @log.debug "invalid syslog message length", :expected => msg_len, :actual => syslog.length + offset, :data => msg
-          valid = false
-        end
-      end
-      [valid, syslog]
+      record
     end
   end
 end

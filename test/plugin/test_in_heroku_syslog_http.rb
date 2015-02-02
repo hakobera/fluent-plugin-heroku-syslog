@@ -31,12 +31,12 @@ class HerokuSyslogHttpInputTest < Test::Unit::TestCase
 
     tests = [
       {
-          'msg' => "<13>1 2014-01-29T06:25:52.589365+00:00 d.916a3e50-efa1-4754-aded-ffffffffffff app web.1 foo",
+          'msg' => "<13>1 2014-01-29T06:25:52.589365+00:00 host app web.1 foo",
           'expected' => 'foo',
           'expected_time' => Time.strptime('2014-01-29T06:25:52+00:00', '%Y-%m-%dT%H:%M:%S%z').to_i
       },
       {
-          'msg' => "<13>1 2014-01-30T07:35:00.123456+09:00 d.916a3e50-efa1-4754-aded-ffffffffffff app web.1 bar",
+          'msg' => "<13>1 2014-01-30T07:35:00.123456+09:00 host app web.1 bar",
           'expected' => 'bar',
           'expected_time' => Time.strptime('2014-01-30T07:35:00+09:00', '%Y-%m-%dT%H:%M:%S%z').to_i
       }
@@ -47,21 +47,23 @@ class HerokuSyslogHttpInputTest < Test::Unit::TestCase
     end
 
     d.expect_emit 'heroku', tests[0]['expected_time'], {
-      "drain_id" => "d.916a3e50-efa1-4754-aded-ffffffffffff",
+      "drain_id" => "d.fc6b856b-3332-4546-93de-7d0ee272c3bd",
       "ident"=>"app",
-      "msg_count" => "91",
       "pid"=>"web.1",
       "message"=> "foo",
-      "pri" => "13"
+      "pri" => "13",
+      "facility" => "user",
+      "priority" => "notice"
     }
 
     d.expect_emit 'heroku', tests[1]['expected_time'], {
-      "drain_id" => "d.916a3e50-efa1-4754-aded-ffffffffffff",
+      "drain_id" => "d.fc6b856b-3332-4546-93de-7d0ee272c3bd",
       "ident"=>"app",
-      "msg_count" => "91",
       "pid"=>"web.1",
       "message"=> "bar",
-      "pri" => "13"
+      "pri" => "13",
+      "facility" => "user",
+      "priority" => "notice"
     }
 
     d.run do
@@ -75,20 +77,22 @@ class HerokuSyslogHttpInputTest < Test::Unit::TestCase
     tests = create_test_case
 
     d.expect_emit 'heroku', tests[0]['expected_time'], {
-      "drain_id" => "d.916a3e50-efa1-4754-aded-ffffffffffff",
+      "drain_id" => "d.fc6b856b-3332-4546-93de-7d0ee272c3bd",
       "ident" => "app",
-      "msg_count" => "188",
       "pid" => "web.1",
       "message" => "x" * 100,
-      "pri" => "13"
+      "pri" => "13",
+      "facility" => "user",
+      "priority" => "notice"
     }
     d.expect_emit 'heroku', tests[1]['expected_time'], {
-      "drain_id" => "d.916a3e50-efa1-4754-aded-ffffffffffff",
+      "drain_id" => "d.fc6b856b-3332-4546-93de-7d0ee272c3bd",
       "ident" => "app",
-      "msg_count" => "1112",
       "pid" => "web.1",
       "message" => "x" * 1024,
-      "pri" => "13"
+      "pri" => "13",
+      "facility" => "user",
+      "priority" => "notice"
     }
 
     d.run do
@@ -97,16 +101,57 @@ class HerokuSyslogHttpInputTest < Test::Unit::TestCase
     end
   end
 
+  def test_accept_matched_drain_id_multiple
+    d = create_driver(CONFIG + "\ndrain_ids [\"abc\", \"d.fc6b856b-3332-4546-93de-7d0ee272c3bd\"]")
+    tests = create_test_case
+
+    d.expect_emit 'heroku', tests[0]['expected_time'], {
+      "drain_id" => "d.fc6b856b-3332-4546-93de-7d0ee272c3bd",
+      "ident" => "app",
+      "pid" => "web.1",
+      "message" => "x" * 100,
+      "pri" => "13",
+      "facility" => "user",
+      "priority" => "notice"
+    }
+    d.expect_emit 'heroku', tests[1]['expected_time'], {
+      "drain_id" => "d.fc6b856b-3332-4546-93de-7d0ee272c3bd",
+      "ident" => "app",
+      "pid" => "web.1",
+      "message" => "x" * 1024,
+      "pri" => "13",
+      "facility" => "user",
+      "priority" => "notice"
+    }
+
+    d.run do
+      res = post(tests)
+      assert_equal "200", res.code
+    end
+  end
+
+  def test_ignore_unmatched_drain_id
+    d = create_driver(CONFIG + "\ndrain_ids [\"abc\"]")
+    tests = create_test_case
+
+    d.run do
+      res = post(tests)
+      assert_equal "200", res.code
+    end
+
+    assert_equal(0, d.emits.length)
+  end
+
   def create_test_case
     # actual syslog message has "\n"
     msgs = [
       {
-        'msg' => '<13>1 2014-01-01T01:23:45.123456+00:00 d.916a3e50-efa1-4754-aded-ffffffffffff app web.1 ' + 'x' * 100,
+        'msg' => '<13>1 2014-01-01T01:23:45.123456+00:00 host app web.1 ' + 'x' * 100,
         'expected' => 'x' * 100,
         'expected_time' => Time.parse("2014-01-01T01:23:45 UTC").to_i
       },
       {
-        'msg' => '<13>1 2014-01-01T01:23:45.123456+00:00 d.916a3e50-efa1-4754-aded-ffffffffffff app web.1 ' + 'x' * 1024,
+        'msg' => '<13>1 2014-01-01T01:23:45.123456+00:00 host app web.1 ' + 'x' * 1024,
         'expected' => 'x' * 1024,
         'expected_time' => Time.parse("2014-01-01T01:23:45 UTC").to_i
       }

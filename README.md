@@ -4,12 +4,6 @@
 
 [![Build Status](https://travis-ci.org/hakobera/fluent-plugin-heroku-syslog.png?branch=master)](https://travis-ci.org/hakobera/fluent-plugin-heroku-syslog)
 
-## Component
-
-### HerokuSyslogInput
-
-Plugin to accept syslog input from [heroku syslog drains](https://devcenter.heroku.com/articles/logging#syslog-drains).
-
 ## Installation
 
 Install with gem or fluent-gem command as:
@@ -22,7 +16,13 @@ $ gem install fluent-plugin-heroku-syslog
 $ sudo /usr/lib64/fluent/ruby/bin/fluent-gem install fluent-plugin-heroku-syslog
 ```
 
-## Configuration
+## Component
+
+### HerokuSyslogInput
+
+Plugin to accept syslog input from [heroku syslog drains](https://devcenter.heroku.com/articles/log-drains#syslog-drains).
+
+#### Configuration
 
 ```
 <source>
@@ -33,9 +33,34 @@ $ sudo /usr/lib64/fluent/ruby/bin/fluent-gem install fluent-plugin-heroku-syslog
 </source>
 ```
 
-## TODO
+### HerokuSyslogHttpInput
 
-- Implement authentication logic or filter like HTTP basic auth.
+Plugin to accept syslog input from [heroku http(s) drains](https://devcenter.heroku.com/articles/log-drains#http-s-drains).
+
+#### Configuration
+
+##### Basic
+
+```
+<source>
+  type heroku_syslog_http
+  port 9880
+  bind 0.0.0.0
+  tag  heroku
+</source>
+```
+
+##### Filter by drain_ids
+
+```
+<source>
+  type heroku_syslog_http
+  port 9880
+  bind 0.0.0.0
+  tag  heroku
+  drain_ids ["YOUR-HEROKU-DRAIN-ID"]
+</source>
+```
 
 ## Copyright
 

@@ -31,12 +31,12 @@ class HerokuSyslogHttpInputTest < Test::Unit::TestCase
 
     tests = [
       {
-          'msg' => "<13>1 2014-01-29T06:25:52.589365+00:00 host app web.1 foo",
+          'msg' => "<13>1 2014-01-29T06:25:52.589365+00:00 host app web.1 - foo",
           'expected' => 'foo',
           'expected_time' => Time.strptime('2014-01-29T06:25:52+00:00', '%Y-%m-%dT%H:%M:%S%z').to_i
       },
       {
-          'msg' => "<13>1 2014-01-30T07:35:00.123456+09:00 host app web.1 bar",
+          'msg' => "<13>1 2014-01-30T07:35:00.123456+09:00 host app web.1 - bar",
           'expected' => 'bar',
           'expected_time' => Time.strptime('2014-01-30T07:35:00+09:00', '%Y-%m-%dT%H:%M:%S%z').to_i
       }
@@ -146,12 +146,12 @@ class HerokuSyslogHttpInputTest < Test::Unit::TestCase
     # actual syslog message has "\n"
     msgs = [
       {
-        'msg' => '<13>1 2014-01-01T01:23:45.123456+00:00 host app web.1 ' + 'x' * 100,
+        'msg' => '<13>1 2014-01-01T01:23:45.123456+00:00 host app web.1 - ' + 'x' * 100,
         'expected' => 'x' * 100,
         'expected_time' => Time.parse("2014-01-01T01:23:45 UTC").to_i
       },
       {
-        'msg' => '<13>1 2014-01-01T01:23:45.123456+00:00 host app web.1 ' + 'x' * 1024,
+        'msg' => '<13>1 2014-01-01T01:23:45.123456+00:00 host app web.1 - ' + 'x' * 1024,
         'expected' => 'x' * 1024,
         'expected_time' => Time.parse("2014-01-01T01:23:45 UTC").to_i
       }

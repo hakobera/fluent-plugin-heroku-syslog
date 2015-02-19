@@ -6,7 +6,7 @@ module Fluent
     Plugin.register_input('heroku_syslog_http', self)
     include Logplex
 
-    config_param :format, :string, :default => SYSLOG_REGEXP
+    config_param :format, :string, :default => SYSLOG_HTTP_REGEXP
     config_param :drain_ids, :array, :default => nil
 
     private

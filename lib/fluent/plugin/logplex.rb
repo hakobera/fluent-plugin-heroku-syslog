@@ -1,6 +1,7 @@
 module Fluent
   module Logplex
     SYSLOG_REGEXP = '/^([0-9]+)\\s+\\<(?<pri>[0-9]+)\\>[0-9]* (?<time>[^ ]*) (?<drain_id>[^ ]*) (?<ident>[a-zA-Z0-9_\\/\\.\\-]*) (?<pid>[a-zA-Z0-9\\.]+)? *(?<message>.*)$/'
+    SYSLOG_HTTP_REGEXP = '/^([0-9]+)\\s+\\<(?<pri>[0-9]+)\\>[0-9]* (?<time>[^ ]*) (?<drain_id>[^ ]*) (?<ident>[a-zA-Z0-9_\\/\\.\\-]*) (?<pid>[a-zA-Z0-9\\.]+)? *- *(?<message>.*)$/'
 
     FACILITY_MAP = {
       0   => 'kern',

@@ -2,7 +2,7 @@ require 'fluent/plugin/in_http'
 require_relative 'logplex'
 
 module Fluent
-  class HerokuSyslogHttpInput < HttpInput
+  class HerokuSyslogHttpInput < Plugin::HttpInput
     Plugin.register_input('heroku_syslog_http', self)
     include Logplex
 

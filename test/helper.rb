@@ -16,8 +16,6 @@ require 'fileutils'
 require 'fluent/log'
 require 'fluent/test'
 
-$log = Fluent::Log.new(STDOUT, Fluent::Log::LEVEL_DEBUG)
-
 unless defined?(Test::Unit::AssertionFailedError)
   class Test::Unit::AssertionFailedError < StandardError
   end

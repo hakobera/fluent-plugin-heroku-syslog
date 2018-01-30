@@ -1,35 +1,48 @@
-require 'fluent/plugin/in_tcp'
+require 'fluent/plugin/in_syslog'
 require_relative 'logplex'
 
 module Fluent
-  class HerokuSyslogInput < TcpInput
-    Plugin.register_input('heroku_syslog', self)
-    include Logplex
+  module Plugin
+    class HerokuSyslogInput < SyslogInput
+      Fluent::Plugin.register_input('heroku_syslog', self)
+      include Logplex
 
-    config_param :format, :string, :default => SYSLOG_REGEXP
-    config_param :drain_ids, :array, :default => nil
+      helpers :parser
 
-    private
+      config_param :tag, :string
+      config_param :drain_ids, :array, :default => nil
+      config_param :protocol_type, :enum, list: [:tcp, :udp], default: :tcp
 
-    def on_message(msg, addr)
-      @parser.parse(msg) { |time, record|
-        unless time && record
-          log.warn "pattern not match: #{msg.inspect}"
-          return
+      config_section :parse do
+        config_set_default :@type, 'regexp'
+        config_set_default :expression, Logplex::SYSLOG_REGEXP
+      end
+
+      private
+
+      def message_handler(data, sock)
+        @parser.parse(data) do |time, record|
+          unless time && record
+            log.warn "failed to parse message", data: data
+            return
+          end
+
+          unless @drain_ids.nil? || @drain_ids.include?(record['drain_id'])
+            log.warn "drain_id not match: #{msg.inspect}"
+            return
+          end
+
+          parse_logplex(record)
+
+          record[@source_address_key] = sock.remote_addr if @source_address_key
+          record[@source_hostname_key] = sock.remote_host if @source_hostname_key
+
+          emit(@tag, time, record)
         end
-
-        unless @drain_ids.nil? || @drain_ids.include?(record['drain_id'])
-          log.warn "drain_id not match: #{msg.inspect}"
-          return
-        end
-
-        record[@source_host_key] = addr[3] if @source_host_key
-        parse_logplex(record)
-        router.emit(@tag, time, record)
-      }
-    rescue => e
-      log.error msg.dump, :error => e, :error_class => e.class, :host => addr[3]
-      log.error_backtrace
+      rescue => e
+        log.error "invalid input", data: data, error: e
+        log.error_backtrace
+      end
     end
   end
 end

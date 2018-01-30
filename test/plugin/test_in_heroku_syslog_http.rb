@@ -2,6 +2,18 @@ require 'helper'
 require 'net/http'
 
 class HerokuSyslogHttpInputTest < Test::Unit::TestCase
+  class << self
+    def startup
+      socket_manager_path = ServerEngine::SocketManager::Server.generate_path
+      @server = ServerEngine::SocketManager::Server.open(socket_manager_path)
+      ENV['SERVERENGINE_SOCKETMANAGER_PATH'] = socket_manager_path.to_s
+    end
+
+    def shutdown
+      @server.close
+    end
+  end
+
   def setup
     Fluent::Test.setup
   end
@@ -12,10 +24,11 @@ class HerokuSyslogHttpInputTest < Test::Unit::TestCase
     bind 127.0.0.1
     body_size_limit 10m
     keepalive_timeout 5
+    tag heroku
   ]
 
   def create_driver(conf=CONFIG)
-    Fluent::Test::InputTestDriver.new(Fluent::HerokuSyslogHttpInput).configure(conf)
+    Fluent::Test::InputTestDriver.new(Fluent::Plugin::HerokuSyslogHttpInput).configure(conf)
   end
 
   def test_configure
@@ -24,6 +37,12 @@ class HerokuSyslogHttpInputTest < Test::Unit::TestCase
     assert_equal '127.0.0.1', d.instance.bind
     assert_equal 10*1024*1024, d.instance.body_size_limit
     assert_equal 5, d.instance.keepalive_timeout
+    assert_equal 'heroku', d.instance.tag
+  end
+
+  def test_configuring_drain_ids
+    d = create_driver(CONFIG + %[drain_ids ["abc"]])
+    assert_equal d.instance.drain_ids, ["abc"]
   end
 
   def test_time_format
